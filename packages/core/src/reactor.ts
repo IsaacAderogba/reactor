@@ -12,7 +12,7 @@ import {
   StoredAction,
 } from "./types";
 
-abstract class BaseReactor<S> {
+abstract class BaseReactor<S, A> {
   protected subscribers = new Set<ReactorSubscriber<S>>();
 
   subscribe(subscriber: ReactorSubscriber<S>) {
@@ -22,13 +22,16 @@ abstract class BaseReactor<S> {
       this.subscribers.delete(subscriber);
     };
   }
+
+  abstract getState(): S;
+  abstract get actions(): A;
 }
 
 export class Reactor<
   S extends ReactorStates = Unknown,
   A extends ReactorActionCreators = Unknown,
   R extends ReactorReducer = Unknown
-> extends BaseReactor<S> {
+> extends BaseReactor<S, A> {
   private internalState: S;
   public readonly reducers: R;
   public readonly actions: A;
@@ -41,6 +44,7 @@ export class Reactor<
     this.actions = this.buildActions(this.dispatch);
   }
 
+  // @internal
   buildActions(dispatch: Dispatch) {
     const actions: Record<string, Unknown> = {};
 
@@ -66,6 +70,7 @@ export class Reactor<
     this.setState(newState);
   };
 
+  // @internal
   setState = (state: S) => {
     this.internalState = state;
     this.subscribers.forEach(subscriber => subscriber(state));
@@ -96,7 +101,7 @@ class CombinedReactor<
   S extends CombinedReactorState = Unknown,
   A extends CombinedReactorActions = Unknown,
   R extends Reactors = Unknown
-> extends BaseReactor<S> {
+> extends BaseReactor<S, A> {
   private plugins: ReactorPlugin[];
   public readonly reactors: R;
   public readonly actions: A;
