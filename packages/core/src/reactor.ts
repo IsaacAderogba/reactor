@@ -97,7 +97,7 @@ export const createReactor = <
   return reactor;
 };
 
-class CombinedReactor<
+export class CombinedReactor<
   S extends CombinedReactorState = Unknown,
   A extends CombinedReactorActions = Unknown,
   R extends Reactors = Unknown
@@ -137,36 +137,25 @@ class CombinedReactor<
       });
     };
 
-    return dispatch;
+    const chainedPlugin = this.chainPlugins(this.plugins);
+
+    const hook = chainedPlugin({
+      actions: this.buildActions(dispatch),
+      getState: this.getState,
+    });
+
+    return hook(dispatch);
   }
 
-  // private buildDispatch(): Dispatch {
-  //   const dispatch: Dispatch = action => {
-  //     const { type, payload } = action;
-  //     const newState = this.reducer[type](this.getState(), payload);
-  //     this.internalState = newState;
-  //     this.subscribers.forEach(subscriber => subscriber(newState));
-  //   };
+  private chainPlugins =
+    (plugins: ReactorPlugin[]): ReactorPlugin =>
+    store => {
+      if (plugins.length === 0) return dispatch => dispatch;
+      if (plugins.length === 1) return plugins[0](store);
 
-  //   const chainedPlugin = this.chainPlugins(this.plugins);
-
-  //   const hook = chainedPlugin({
-  //     actions: this.buildActions(dispatch),
-  //     getState: this.getState,
-  //   });
-
-  //   return hook(dispatch);
-  // }
-
-  // private chainPlugins =
-  //   (plugins: ReactorPlugin[]): ReactorPlugin =>
-  //   store => {
-  //     if (plugins.length === 0) return dispatch => dispatch;
-  //     if (plugins.length === 1) return plugins[0](store);
-
-  //     const boundPlugins = plugins.map(plugin => plugin(store));
-  //     return boundPlugins.reduce((a, b) => next => a(b(next)));
-  //   };
+      const boundPlugins = plugins.map(plugin => plugin(store));
+      return boundPlugins.reduce((a, b) => next => a(b(next)));
+    };
 
   getState = (): S => {
     const state: Record<string, Unknown> = {};

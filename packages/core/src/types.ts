@@ -57,7 +57,7 @@ export type Store<
   getState: () => S;
 };
 
-export type ReactorPlugin<
-  S extends ReactorStates = Unknown,
-  A extends ReactorActions = Unknown
-> = (store: Store<S, A>) => (dispatch: Dispatch) => Dispatch;
+export type ReactorPlugin<S = Unknown, A = Unknown> = (store: {
+  actions: A;
+  getState: () => S;
+}) => (dispatch: Dispatch) => Dispatch;
