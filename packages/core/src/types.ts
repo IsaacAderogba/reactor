@@ -27,7 +27,7 @@ export type ActionCreator<
 ) => void;
 
 export type ReactorActionCreators<
-  A extends Record<string, Action | StoredAction>,
+  A extends Record<string, Action | StoredAction> = Unknown,
   S extends Store = Store
 > = {
   [P in keyof A]: ActionCreator<A[P], S>;

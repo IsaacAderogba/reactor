@@ -26,12 +26,12 @@ abstract class BaseReactor<S> {
 
 export class Reactor<
   S extends ReactorStates = Unknown,
-  A extends ReactorActions = Unknown,
+  A extends ReactorActionCreators = Unknown,
   R extends ReactorReducer = Unknown
 > extends BaseReactor<S> {
   private internalState: S;
   public readonly reducers: R;
-  public readonly actions: ReactorActionCreators<A, Store<S, A>>;
+  public readonly actions: A;
 
   constructor(state: S, reducers: R) {
     super();
@@ -57,7 +57,7 @@ export class Reactor<
       };
     });
 
-    return actions as ReactorActionCreators<A>;
+    return actions as A;
   }
 
   private dispatch: Dispatch = action => {
@@ -83,10 +83,11 @@ export const createReactor = <
 }) => {
   const { initialState, reducers } = props;
 
-  const reactor = new Reactor<S, A, ReactorReducer<S, A>>(
-    initialState,
-    reducers
-  );
+  const reactor = new Reactor<
+    S,
+    ReactorActionCreators<A, Store<S, A>>,
+    ReactorReducer<S, A>
+  >(initialState, reducers);
 
   return reactor;
 };
@@ -97,7 +98,7 @@ class CombinedReactor<
   R extends Reactors = Unknown
 > extends BaseReactor<S> {
   private plugins: ReactorPlugin[];
-  private reactors: R;
+  public readonly reactors: R;
   public readonly actions: A;
 
   constructor(reactors: R, plugins: ReactorPlugin[] = []) {
@@ -105,12 +106,10 @@ class CombinedReactor<
     this.reactors = reactors;
     this.plugins = plugins;
 
-    this.actions = this.buildActions();
+    this.actions = this.buildActions(this.buildDispatch());
   }
 
-  private buildActions(): A {
-    const dispatch = this.buildDispatch();
-
+  private buildActions(dispatch: Dispatch): A {
     const actions: Record<string, Unknown> = {};
     Object.entries(this.reactors).forEach(([key, reactor]) => {
       actions[key] = reactor.buildActions(dispatch);
