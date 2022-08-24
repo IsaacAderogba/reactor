@@ -13,7 +13,7 @@ interface CounterActions {
 
 const counter = createReactor<CounterState, CounterActions>({
   initialState: { value: 0 },
-  reducer: {
+  reducers: {
     increment(state) {
       return { ...state, value: state.value + 1 };
     },
@@ -41,7 +41,7 @@ interface StringActions {
 
 const string = createReactor<StringStore, StringActions>({
   initialState: { value: "" },
-  reducer: {
+  reducers: {
     append(state, payload) {
       return { ...state, value: state.value + payload };
     },
