@@ -4,23 +4,25 @@ export type State<S = Unknown> = S;
 export type ReactorStates = Record<string, State>;
 
 export type Action<P = Unknown> = { type: string; payload: P };
-export type AsyncAction<P = Unknown, S extends Store = Store> = (
+export type ReactorActions = Record<string, Action>;
+
+export type StoredAction<P = Unknown, S extends Store = Store> = (
   store: S
 ) => Promise<P> | P;
 
-export type DispatchAction = Action | AsyncAction;
-export type ReactorActions = Record<string, Action>;
-
-export type ActionCreator<A extends DispatchAction, S extends Store = Store> = (
+export type ActionCreator<
+  A extends Action | StoredAction,
+  S extends Store = Store
+> = (
   ...args: A extends Action
     ? A["payload"] extends never
       ? []
-      : [payload: A["payload"] | AsyncAction<A["payload"], S>]
-    : [resolver: AsyncAction]
+      : [payload: A["payload"] | StoredAction<A["payload"], S>]
+    : [resolver: StoredAction]
 ) => void;
 
 export type ReactorActionCreators<
-  A extends Record<string, DispatchAction>,
+  A extends Record<string, Action | StoredAction>,
   S extends Store = Store
 > = {
   [P in keyof A]: ActionCreator<A[P], S>;

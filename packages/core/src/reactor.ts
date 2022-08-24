@@ -1,5 +1,4 @@
 import {
-  DispatchAction,
   Dispatch,
   ReactorActionCreators,
   ReactorActions,
@@ -9,6 +8,8 @@ import {
   ReactorSubscriber,
   Unknown,
   Store,
+  Action,
+  StoredAction,
 } from "./types";
 
 export class Reactor<
@@ -16,7 +17,7 @@ export class Reactor<
   A extends ReactorActions = Unknown,
   R extends ReactorReducer = Unknown
 > {
-  private subscribers = new Set<ReactorSubscriber<ReactorStates>>();
+  private subscribers = new Set<ReactorSubscriber<S>>();
   private internalState: S;
   private internalActions: ReactorActionCreators<A, Store<S, A>>;
   private reducer: R;
@@ -34,7 +35,7 @@ export class Reactor<
     const actions: Record<string, Unknown> = {};
 
     Object.entries(this.reducer).forEach(([type]) => {
-      actions[type] = async (action: DispatchAction) => {
+      actions[type] = async (action: Action | StoredAction) => {
         if (typeof action === "function") {
           const payload = await action({ actions, getState: this.getState });
           dispatch({ type, payload });
@@ -80,7 +81,7 @@ export class Reactor<
     return this.internalActions;
   }
 
-  subscribe(subscriber: ReactorSubscriber<ReactorStates>) {
+  subscribe(subscriber: ReactorSubscriber<S>) {
     this.subscribers.add(subscriber);
 
     return () => {
@@ -92,9 +93,7 @@ export class Reactor<
 export const createReactor = <
   S extends ReactorStates,
   A extends ReactorActions,
-  N extends string = string
 >(props: {
-  name: N;
   initialState: S;
   reducer: ReactorReducer<S, A>;
   plugins?: ReactorPlugin[];

@@ -15,7 +15,7 @@ interface CounterActions extends ReactorActions {
   increment: Action;
   decrement: Action;
   incrementByAmount: Action<number>;
-  incrementByAmountAsync: Action<number>;
+  incrementByAmountAsync: Action<{ value: number }>;
 }
 
 const loggingPlugin: ReactorPlugin<CounterState, CounterActions> =
@@ -31,7 +31,6 @@ const loggingPlugin: ReactorPlugin<CounterState, CounterActions> =
   };
 
 const counter = createReactor<CounterState, CounterActions>({
-  name: "counter",
   initialState: { value: 0 },
   reducer: {
     increment: state => {
@@ -44,7 +43,7 @@ const counter = createReactor<CounterState, CounterActions>({
       return { ...state, value: state.value + action.payload };
     },
     incrementByAmountAsync: (state, action) => {
-      return { ...state, value: state.value + action.payload };
+      return { ...state, value: state.value + action.payload.value };
     },
   },
   plugins: [loggingPlugin],
@@ -54,6 +53,6 @@ counter.actions.incrementByAmount(5);
 counter.actions.decrement();
 counter.actions.increment();
 counter.actions.increment();
-counter.actions.incrementByAmountAsync(async ({ actions, getState }) => {
-  return 2;
+counter.actions.incrementByAmountAsync(({ actions, getState }) => {
+  return { value: 2 };
 });
