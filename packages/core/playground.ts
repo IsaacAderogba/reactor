@@ -34,6 +34,9 @@ counter.actions.incrementByAmount(5);
 counter.actions.decrement();
 counter.actions.increment();
 counter.actions.increment();
-counter.actions.incrementByAmountAsync(() => {
+counter.actions.incrementByAmountAsync(({ actions }) => {
+  actions.incrementByAmountAsync(() => {
+    return { value: 20 };
+  });
   return { value: 2 };
 });

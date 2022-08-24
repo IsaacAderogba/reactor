@@ -13,9 +13,9 @@ import {
 } from "./types";
 
 export class Reactor<
-  S extends ReactorStates = Unknown,
-  A extends ReactorActions = Unknown,
-  R extends ReactorReducer = Unknown
+  S extends ReactorStates,
+  A extends ReactorActions,
+  R extends ReactorReducer
 > {
   private subscribers = new Set<ReactorSubscriber<S>>();
   private internalState: S;

@@ -13,7 +13,7 @@ export type ReactorActions = Record<string, Action>;
 
 export type StoredAction<P = Unknown, S extends Store = Store> = (
   store: S
-) => Promise<P> | P;
+) => P | Promise<P>;
 
 export type ActionCreator<
   A extends Action | StoredAction,
@@ -53,7 +53,7 @@ export type Store<
   S extends ReactorStates = Unknown,
   A extends ReactorActions = Unknown
 > = {
-  actions: ReactorActionCreators<A>;
+  actions: ReactorActionCreators<A, Store<S, A>>;
   getState: () => S;
 };
 
