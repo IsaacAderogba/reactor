@@ -13,28 +13,28 @@ import {
 } from "./types";
 
 export class Reactor<
-  S extends ReactorStates,
-  A extends ReactorActions,
-  R extends ReactorReducer
+  S extends ReactorStates = Unknown,
+  A extends ReactorActions = Unknown,
+  R extends ReactorReducer = Unknown
 > {
   private subscribers = new Set<ReactorSubscriber<S>>();
   private internalState: S;
   private internalActions: ReactorActionCreators<A, Store<S, A>>;
-  private reducer: R;
-  private plugins: ReactorPlugin[];
+  public reducer: R;
 
-  constructor(state: S, reducer: R, plugins: ReactorPlugin[] = []) {
+  constructor(state: S, reducer: R) {
     this.internalState = state;
     this.reducer = reducer;
-    this.plugins = plugins;
 
-    this.internalActions = this.buildActions(this.buildDispatch());
+    this.internalActions = this.buildActions(this.dispatch);
   }
 
-  private buildActions(dispatch: Dispatch) {
+  buildActions(dispatch: Dispatch) {
     const actions: Record<string, Unknown> = {};
 
     Object.entries(this.reducer).forEach(([type]) => {
+      if (!this.reducer[type]) return;
+
       actions[type] = async (action: Action | StoredAction) => {
         if (typeof action === "function") {
           const payload = await action({ actions, getState: this.getState });
@@ -48,35 +48,18 @@ export class Reactor<
     return actions as ReactorActionCreators<A>;
   }
 
-  private buildDispatch(): Dispatch {
-    const dispatch: Dispatch = action => {
-      const { type, payload } = action;
-      const newState = this.reducer[type](this.getState(), payload);
-      this.internalState = newState;
-      this.subscribers.forEach(subscriber => subscriber(newState));
-    };
+  private dispatch: Dispatch = action => {
+    const { type, payload } = action;
+    const newState = this.reducer[type](this.getState(), payload);
+    this.setState(newState);
+  };
 
-    const chainedPlugin = this.chainPlugins(this.plugins);
+  setState = (state: S) => {
+    this.internalState = state;
+    this.subscribers.forEach(subscriber => subscriber(state));
+  };
 
-    const hook = chainedPlugin({
-      actions: this.buildActions(dispatch),
-      getState: this.getState,
-    });
-
-    return hook(dispatch);
-  }
-
-  private chainPlugins =
-    (plugins: ReactorPlugin[]): ReactorPlugin =>
-    store => {
-      if (plugins.length === 0) return dispatch => dispatch;
-      if (plugins.length === 1) return plugins[0](store);
-
-      const boundPlugins = plugins.map(plugin => plugin(store));
-      return boundPlugins.reduce((a, b) => next => a(b(next)));
-    };
-
-  getState = () => this.internalState;
+  getState = (): S => this.internalState;
 
   get actions() {
     return this.internalActions;
@@ -93,19 +76,138 @@ export class Reactor<
 
 export const createReactor = <
   S extends ReactorStates,
-  A extends ReactorActions,
+  A extends ReactorActions
 >(props: {
   initialState: S;
   reducer: ReactorReducer<S, A>;
-  plugins?: ReactorPlugin[];
 }) => {
-  const { initialState, reducer, plugins } = props;
+  const { initialState, reducer } = props;
 
   const reactor = new Reactor<S, A, ReactorReducer<S, A>>(
     initialState,
-    reducer,
-    plugins
+    reducer
   );
 
   return reactor;
+};
+
+/**
+ * So, need to take individual reactors and namespace them in an internal store.
+ */
+
+class ComposedReactor<
+  R extends Reactors = Unknown,
+  S extends ComposedReactorState = Unknown,
+  A extends ComposedReactorActions = Unknown
+> {
+  private subscribers = new Set<ReactorSubscriber<S>>();
+  private reactors: R;
+  private internalActions: A;
+  private plugins: ReactorPlugin[];
+
+  constructor(reactors: R, plugins: ReactorPlugin[] = []) {
+    this.reactors = reactors;
+    this.plugins = plugins;
+
+    this.internalActions = this.buildActions();
+  }
+
+  private buildActions(): A {
+    const dispatch = this.buildDispatch();
+
+    const actions: Record<string, Unknown> = {};
+    Object.entries(this.reactors).forEach(([key, reactor]) => {
+      actions[key] = reactor.buildActions(dispatch);
+    });
+
+    return actions as A;
+  }
+
+  private buildDispatch(): Dispatch {
+    const dispatch: Dispatch = action => {
+      const { type, payload } = action;
+
+      Object.values(this.reactors).forEach(reactor => {
+        if (!reactor.reducer[type]) return;
+
+        const prevState = reactor.getState();
+        const newState = reactor.reducer[type](prevState, payload);
+        reactor.setState(newState);
+        this.subscribers.forEach(subscriber => subscriber(newState));
+      });
+    };
+
+    return dispatch;
+  }
+
+  // private buildDispatch(): Dispatch {
+  //   const dispatch: Dispatch = action => {
+  //     const { type, payload } = action;
+  //     const newState = this.reducer[type](this.getState(), payload);
+  //     this.internalState = newState;
+  //     this.subscribers.forEach(subscriber => subscriber(newState));
+  //   };
+
+  //   const chainedPlugin = this.chainPlugins(this.plugins);
+
+  //   const hook = chainedPlugin({
+  //     actions: this.buildActions(dispatch),
+  //     getState: this.getState,
+  //   });
+
+  //   return hook(dispatch);
+  // }
+
+  // private chainPlugins =
+  //   (plugins: ReactorPlugin[]): ReactorPlugin =>
+  //   store => {
+  //     if (plugins.length === 0) return dispatch => dispatch;
+  //     if (plugins.length === 1) return plugins[0](store);
+
+  //     const boundPlugins = plugins.map(plugin => plugin(store));
+  //     return boundPlugins.reduce((a, b) => next => a(b(next)));
+  //   };
+
+  getState = (): S => {
+    const state: Record<string, Unknown> = {};
+    Object.entries(this.reactors).forEach(([key, reactor]) => {
+      state[key] = reactor.getState();
+    });
+
+    return state as S;
+  };
+
+  get actions(): A {
+    return this.internalActions;
+  }
+
+  subscribe(subscriber: ReactorSubscriber<S>) {
+    this.subscribers.add(subscriber);
+
+    return () => {
+      this.subscribers.delete(subscriber);
+    };
+  }
+}
+
+export const composeReactors = <R extends Reactors>(props: {
+  reactors: R;
+  plugins?: ReactorPlugin[];
+}) => {
+  const { reactors, plugins } = props;
+  return new ComposedReactor<
+    R,
+    ComposedReactorState<R>,
+    ComposedReactorActions<R>
+  >(reactors, plugins);
+};
+
+type Reactors = Record<string, Reactor>;
+
+type ComposedReactorState<R extends Reactors = Unknown> = {
+  [P in keyof R]: ReturnType<R[P]["getState"]>;
+};
+
+type ComposedReactorActions<R extends Reactors = Unknown> = {
+  [P in keyof R]: R[P]["actions"];
 };
