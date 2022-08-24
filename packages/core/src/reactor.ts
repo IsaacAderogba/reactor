@@ -12,19 +12,29 @@ import {
   StoredAction,
 } from "./types";
 
-abstract class BaseReactor {}
+abstract class BaseReactor<S> {
+  protected subscribers = new Set<ReactorSubscriber<S>>();
+
+  subscribe(subscriber: ReactorSubscriber<S>) {
+    this.subscribers.add(subscriber);
+
+    return () => {
+      this.subscribers.delete(subscriber);
+    };
+  }
+}
 
 export class Reactor<
   S extends ReactorStates = Unknown,
   A extends ReactorActions = Unknown,
   R extends ReactorReducer = Unknown
-> {
-  private subscribers = new Set<ReactorSubscriber<S>>();
+> extends BaseReactor<S> {
   private internalState: S;
   private internalActions: ReactorActionCreators<A, Store<S, A>>;
   public reducer: R;
 
   constructor(state: S, reducer: R) {
+    super();
     this.internalState = state;
     this.reducer = reducer;
 
@@ -66,14 +76,6 @@ export class Reactor<
   get actions() {
     return this.internalActions;
   }
-
-  subscribe(subscriber: ReactorSubscriber<S>) {
-    this.subscribers.add(subscriber);
-
-    return () => {
-      this.subscribers.delete(subscriber);
-    };
-  }
 }
 
 export const createReactor = <
@@ -97,13 +99,13 @@ class CombinedReactor<
   R extends Reactors = Unknown,
   S extends CombinedReactorState = Unknown,
   A extends CombinedReactorActions = Unknown
-> {
-  private subscribers = new Set<ReactorSubscriber<S>>();
+> extends BaseReactor<S> {
   private reactors: R;
   private internalActions: A;
   private plugins: ReactorPlugin[];
 
   constructor(reactors: R, plugins: ReactorPlugin[] = []) {
+    super();
     this.reactors = reactors;
     this.plugins = plugins;
 
@@ -177,14 +179,6 @@ class CombinedReactor<
 
   get actions(): A {
     return this.internalActions;
-  }
-
-  subscribe(subscriber: ReactorSubscriber<S>) {
-    this.subscribers.add(subscriber);
-
-    return () => {
-      this.subscribers.delete(subscriber);
-    };
   }
 }
 
