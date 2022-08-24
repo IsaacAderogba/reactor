@@ -1,5 +1,5 @@
 import {
-  Action,
+  DispatchAction,
   Dispatch,
   ReactorActionCreators,
   ReactorActions,
@@ -8,6 +8,7 @@ import {
   ReactorStates,
   ReactorSubscriber,
   Unknown,
+  Store,
 } from "./types";
 
 export class Reactor<
@@ -17,7 +18,7 @@ export class Reactor<
 > {
   private subscribers = new Set<ReactorSubscriber<ReactorStates>>();
   private internalState: S;
-  private internalActions: ReactorActionCreators<A>;
+  private internalActions: ReactorActionCreators<A, Store<S, A>>;
   private reducer: R;
   private plugins: ReactorPlugin[];
 
@@ -33,8 +34,13 @@ export class Reactor<
     const actions: Record<string, Unknown> = {};
 
     Object.entries(this.reducer).forEach(([type]) => {
-      actions[type] = (payload: Action["payload"]) => {
-        if (this.reducer[type]) dispatch({ type, payload });
+      actions[type] = async (action: DispatchAction) => {
+        if (typeof action === "function") {
+          const payload = await action({ actions, getState: this.getState });
+          dispatch({ type, payload });
+        } else {
+          dispatch({ type, payload: action });
+        }
       };
     });
 
@@ -43,7 +49,7 @@ export class Reactor<
 
   private buildDispatch(): Dispatch {
     const dispatch: Dispatch = action => {
-      const newState = this.reducer[action.type](this.state, action);
+      const newState = this.reducer[action.type](this.getState(), action);
       this.internalState = newState;
       this.subscribers.forEach(subscriber => subscriber(newState));
     };
@@ -52,7 +58,7 @@ export class Reactor<
 
     const hook = chainedPlugin({
       actions: this.buildActions(dispatch),
-      getState: () => this.state,
+      getState: this.getState,
     });
 
     return hook(dispatch);
@@ -68,11 +74,9 @@ export class Reactor<
       return boundPlugins.reduce((a, b) => next => a(b(next)));
     };
 
-  get state() {
-    return this.internalState;
-  }
+  getState = () => this.internalState;
 
-  get actions(): ReactorActionCreators<A> {
+  get actions() {
     return this.internalActions;
   }
 
@@ -88,17 +92,20 @@ export class Reactor<
 export const createReactor = <
   S extends ReactorStates,
   A extends ReactorActions,
-  R extends ReactorReducer<S, A> = ReactorReducer<S, A>,
   N extends string = string
 >(props: {
   name: N;
   initialState: S;
-  reducer: R;
+  reducer: ReactorReducer<S, A>;
   plugins?: ReactorPlugin[];
 }) => {
   const { initialState, reducer, plugins } = props;
 
-  const reactor = new Reactor<S, A, R>(initialState, reducer, plugins);
+  const reactor = new Reactor<S, A, ReactorReducer<S, A>>(
+    initialState,
+    reducer,
+    plugins
+  );
 
   return reactor;
 };
