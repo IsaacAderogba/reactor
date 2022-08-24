@@ -50,7 +50,8 @@ export class Reactor<
 
   private buildDispatch(): Dispatch {
     const dispatch: Dispatch = action => {
-      const newState = this.reducer[action.type](this.getState(), action);
+      const { type, payload } = action;
+      const newState = this.reducer[type](this.getState(), payload);
       this.internalState = newState;
       this.subscribers.forEach(subscriber => subscriber(newState));
     };

@@ -1,58 +1,39 @@
-import {
-  Action,
-  createReactor,
-  ReactorActions,
-  ReactorPlugin,
-  ReactorStates,
-  State,
-} from "./src";
+import { createReactor, reactorLogger } from "./src";
 
-interface CounterState extends ReactorStates {
-  value: State<number>;
+interface CounterState {
+  value: number;
 }
 
-interface CounterActions extends ReactorActions {
-  increment: Action;
-  decrement: Action;
-  incrementByAmount: Action<number>;
-  incrementByAmountAsync: Action<{ value: number }>;
+interface CounterActions {
+  increment: never;
+  decrement: never;
+  incrementByAmount: number;
+  incrementByAmountAsync: { value: number };
 }
-
-const loggingPlugin: ReactorPlugin<CounterState, CounterActions> =
-  ({ getState }) =>
-  next =>
-  action => {
-    console.info("before", getState());
-    console.info("action", action);
-    // actions.increment();
-    const result = next(action);
-    console.info("after", getState());
-    return result;
-  };
 
 const counter = createReactor<CounterState, CounterActions>({
   initialState: { value: 0 },
   reducer: {
-    increment: state => {
+    increment(state) {
       return { ...state, value: state.value + 1 };
     },
-    decrement: state => {
+    decrement(state) {
       return { ...state, value: state.value - 1 };
     },
-    incrementByAmount: (state, action) => {
-      return { ...state, value: state.value + action.payload };
+    incrementByAmount(state, payload) {
+      return { ...state, value: state.value + payload };
     },
-    incrementByAmountAsync: (state, action) => {
-      return { ...state, value: state.value + action.payload.value };
+    incrementByAmountAsync(state, payload) {
+      return { ...state, value: state.value + payload.value };
     },
   },
-  plugins: [loggingPlugin],
+  plugins: [reactorLogger()],
 });
 
 counter.actions.incrementByAmount(5);
 counter.actions.decrement();
 counter.actions.increment();
 counter.actions.increment();
-counter.actions.incrementByAmountAsync(({ actions, getState }) => {
+counter.actions.incrementByAmountAsync(() => {
   return { value: 2 };
 });

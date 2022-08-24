@@ -3,7 +3,7 @@ export type Unknown = any;
 export type State<S = Unknown> = S;
 export type ReactorStates = Record<string, State>;
 
-export type Action<P = Unknown> = { type: string; payload: P };
+export type Action<P = Unknown> = P;
 export type ReactorActions = Record<string, Action>;
 
 export type StoredAction<P = Unknown, S extends Store = Store> = (
@@ -15,9 +15,9 @@ export type ActionCreator<
   S extends Store = Store
 > = (
   ...args: A extends Action
-    ? A["payload"] extends never
+    ? A extends never
       ? []
-      : [payload: A["payload"] | StoredAction<A["payload"], S>]
+      : [payload: A | StoredAction<A, S>]
     : [resolver: StoredAction]
 ) => void;
 
@@ -28,7 +28,7 @@ export type ReactorActionCreators<
   [P in keyof A]: ActionCreator<A[P], S>;
 };
 
-export type Dispatch = (action: Action) => void;
+export type Dispatch = (action: { type: string; payload: Action }) => void;
 
 export type Reducer<S extends State, A extends Action> = (
   state: S,
