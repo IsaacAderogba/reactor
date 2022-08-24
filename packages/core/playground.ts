@@ -1,4 +1,4 @@
-import { createReactor, composeReactors, reactorLogger } from "./src";
+import { createReactor, combineReactors, reactorLogger } from "./src";
 
 interface CounterState {
   value: number;
@@ -29,6 +29,8 @@ const counter = createReactor<CounterState, CounterActions>({
   },
 });
 
+counter.subscribe(state => console.log("counter changed", state));
+
 interface StringStore {
   value: string;
 }
@@ -46,8 +48,9 @@ const string = createReactor<StringStore, StringActions>({
   },
 });
 
+string.subscribe(state => console.log("string changed", state));
+
 string.actions.append("reactor");
-console.log("refactored");
 
 counter.actions.incrementByAmount(5);
 counter.actions.decrement();
@@ -60,16 +63,11 @@ counter.actions.incrementByAmountAsync(({ actions }) => {
   return { value: 2 };
 });
 
-const store = composeReactors({
+const store = combineReactors({
   reactors: { counter, string },
   plugins: [reactorLogger()],
 });
 
-console.log(store.getState());
-// store.getState().counter
-// store.reactors.counter.
-console.log(store.actions.counter);
+store.subscribe(state => console.log("store changed", state));
+store.actions.string.append("combined");
 store.actions.counter.decrement();
-console.log(store.getState());
-store.actions.string.append("combined")
-console.log(store.getState());

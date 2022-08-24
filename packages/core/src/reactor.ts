@@ -12,6 +12,8 @@ import {
   StoredAction,
 } from "./types";
 
+abstract class BaseReactor {}
+
 export class Reactor<
   S extends ReactorStates = Unknown,
   A extends ReactorActions = Unknown,
@@ -91,14 +93,10 @@ export const createReactor = <
   return reactor;
 };
 
-/**
- * So, need to take individual reactors and namespace them in an internal store.
- */
-
-class ComposedReactor<
+class CombinedReactor<
   R extends Reactors = Unknown,
-  S extends ComposedReactorState = Unknown,
-  A extends ComposedReactorActions = Unknown
+  S extends CombinedReactorState = Unknown,
+  A extends CombinedReactorActions = Unknown
 > {
   private subscribers = new Set<ReactorSubscriber<S>>();
   private reactors: R;
@@ -133,7 +131,7 @@ class ComposedReactor<
         const prevState = reactor.getState();
         const newState = reactor.reducer[type](prevState, payload);
         reactor.setState(newState);
-        this.subscribers.forEach(subscriber => subscriber(newState));
+        this.subscribers.forEach(subscriber => subscriber(this.getState()));
       });
     };
 
@@ -190,24 +188,24 @@ class ComposedReactor<
   }
 }
 
-export const composeReactors = <R extends Reactors>(props: {
+export const combineReactors = <R extends Reactors>(props: {
   reactors: R;
   plugins?: ReactorPlugin[];
 }) => {
   const { reactors, plugins } = props;
-  return new ComposedReactor<
+  return new CombinedReactor<
     R,
-    ComposedReactorState<R>,
-    ComposedReactorActions<R>
+    CombinedReactorState<R>,
+    CombinedReactorActions<R>
   >(reactors, plugins);
 };
 
 type Reactors = Record<string, Reactor>;
 
-type ComposedReactorState<R extends Reactors = Unknown> = {
+type CombinedReactorState<R extends Reactors = Unknown> = {
   [P in keyof R]: ReturnType<R[P]["getState"]>;
 };
 
-type ComposedReactorActions<R extends Reactors = Unknown> = {
+type CombinedReactorActions<R extends Reactors = Unknown> = {
   [P in keyof R]: R[P]["actions"];
 };
