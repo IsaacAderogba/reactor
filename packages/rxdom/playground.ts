@@ -1,9 +1,10 @@
-import { RxDOM, Component, div } from "@iatools/rxdom";
+import { RxDOM, Component, div, composeFunction } from "@iatools/rxdom";
 import {
   createReactor,
   combineReactors,
   reactorLogger,
 } from "@iatools/reactor-core";
+import { composeReactor } from "./src";
 
 interface CounterState {
   value: number;
@@ -30,20 +31,39 @@ const counter = createReactor<CounterState, CounterActions>({
   },
 });
 
-const store = combineReactors({
+const reactor = combineReactors({
   reactors: { counter },
   plugins: [reactorLogger()],
 });
 
-store.actions.counter.increment(3)
+const [Provider, selector] = composeReactor(reactor, ({ props }) => {
+  return div({ content: props.content });
+});
+
+reactor.actions.counter.increment(3);
 
 export class AppComponent extends Component {
   render() {
-    return div({ content: ["App"] });
+    return div({
+      content: [
+        Provider({
+          content: [ReactiveComponent()],
+        }),
+      ],
+    });
   }
 }
 
 const App = Component.compose(AppComponent);
+
+interface ReactiveComponentContext {
+  reactor: typeof reactor;
+}
+
+const ReactiveComponent = composeFunction(() => {
+  console.log("render");
+  return div({ content: ["hello world"] });
+}, {});
 
 const rxdom = new RxDOM();
 rxdom.render(App({ key: "root" }), document.getElementById("playground")!);

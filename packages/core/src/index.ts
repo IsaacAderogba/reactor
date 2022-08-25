@@ -4,7 +4,7 @@ export type {
   ReactorPlugin,
 } from "./types";
 
-export { createReactor, combineReactors, Reactor } from "./Reactor";
+export { createReactor, combineReactors, Reactor, CombinedReactor } from "./Reactor";
 
 export { reactorLogger } from "./plugins/reactorLogger";
 export type { ReactorLoggerProps } from "./plugins/reactorLogger";
