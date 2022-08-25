@@ -1,9 +1,4 @@
-import {
-  createReactor,
-  combineReactors,
-  reactorLogger,
-  ReactorPlugin,
-} from "./src";
+import { createReactor, combineReactors, reactorLogger } from "./src";
 
 interface CounterState {
   value: number;
