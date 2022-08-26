@@ -19,7 +19,7 @@ class ReactorProviderComponent extends Component<
   ReactorProviderProps
 > {
   unsubscribe: () => void;
-  
+
   constructor(spec: ComponentSpec) {
     super(spec);
 
@@ -72,3 +72,5 @@ export type ReactorContextProps<R extends ReactorType = Unknown> = {
 
 type ReactorType = Reactor | CombinedReactor;
 type Unknown = any;
+
+

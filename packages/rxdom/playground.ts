@@ -1,4 +1,4 @@
-import { RxDOM, Component, div, composeFunction, button } from "@iatools/rxdom";
+import { RxDOM, div, composeFunction, button } from "@iatools/rxdom";
 import {
   createReactor,
   combineReactors,
@@ -36,30 +36,22 @@ const reactor = combineReactors({
   plugins: [reactorLogger()],
 });
 
-type ReactorProps = ReactorContextProps<typeof reactor>;
-
 const [Provider, selector] = composeReactor<typeof reactor>(({ props }) => {
   return div({ content: props.content });
 });
 
-export class AppComponent extends Component {
-  render() {
-    return div({
-      content: [
-        Provider({
-          reactor,
-          content: [ReactiveComponent(), NonReactiveComponent()],
-        }),
-      ],
-    });
-  }
-}
+const App = composeFunction(() => {
+  return Provider({
+    reactor,
+    content: [ReactiveComponent(), NonReactiveComponent()],
+  });
+});
 
-const App = Component.compose(AppComponent);
+type ContextProps = ReactorContextProps<typeof reactor>;
 
 interface ReactiveComponentContext {
   counter: {
-    state: ReactorProps["state"]["counter"];
+    state: ContextProps["state"]["counter"];
   };
 }
 
@@ -78,7 +70,7 @@ const ReactiveComponent = composeFunction<{}, ReactiveComponentContext>(
 
 interface NonReactiveComponentContext {
   counter: {
-    actions: ReactorProps["actions"]["counter"];
+    actions: ContextProps["actions"]["counter"];
   };
 }
 

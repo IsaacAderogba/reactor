@@ -14,7 +14,7 @@
 
 #### Installation
 
-RxDOM can be installed as a standalone library through your preferred package manager.
+Reactor can be installed as a standalone library through your preferred package manager.
 
 ```shell
 npm install @iatools/reactor-core
@@ -79,6 +79,74 @@ const store = combineReactors({
 });
 
 store.actions.counter.increment(1);
+```
+
+#### Usage with RxDOM
+
+Reactor has bindings for RxDOM library, distributed via the `reactor-rxdom` package.
+
+[RxDOM, a zero-dependency JavaScript library for building reactive user interfaces](https://www.isaacaderogba.com/rxdom)
+
+These bindings should be installed alongside `reactor-core` and `rxdom` packages can be done with your preferred package manager:
+
+```shell
+npm install @iatools/reactor-core @iatools/reactor-rxdom @iatools/rxdom
+```
+
+After the creation of your reactors using `reactor-core`, use the `composeReactor` factory to create a strongly-typed context provider and selector:
+
+```typescript
+import { composeReactor } from "@iatools/reactor-rxdom";
+
+// ... create reactor or combined reactor
+
+const [Provider, selector] = composeReactor<typeof reactor>(({ props }) => {
+  return div({ content: props.content });
+});
+```
+
+When rendering this provider, pass your `reactor` as one of the props. This will make the `reactor` available to all descendant components.
+
+```typescript
+import { composeFunction } from "@iatools/rxdom";
+
+const App = composeFunction(() => {
+  return Provider({
+    reactor,
+    content: [Child()],
+  });
+});
+```
+
+To access this context in a child component, define which slice of the reactor you would like to access, and then use the `selector` returned from `composeReactor` to access that slice.
+
+```typescript
+import { button } from "@iatools/rxdom";
+import { ReactorContextProps } from "@iatools/reactor-rxdom";
+
+// ... composed reactor
+
+type ContextProps = ReactorContextProps<typeof reactor>;
+
+interface ChildContext {
+  counterState: ContextProps["state"]["counter"];
+  counterActions: ContextProps["actions"]["counter"];
+}
+
+const Child = composeFunction<{}, ChildContext>(
+  ({ context }) => {
+    return button({
+      content: [context.counterState.value],
+      onclick: () => {
+        context.counterActions.increment(1);
+      },
+    });
+  },
+  {
+    counterState: selector(props => props.state.counter),
+    counterActions: selector(props => props.actions.counter),
+  }
+);
 ```
 
 ## Docs
