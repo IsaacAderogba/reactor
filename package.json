@@ -9,7 +9,8 @@
   "scripts": {
     "lint:staged": "lint-staged",
     "prepare": "husky install",
-    "version": "lerna version"
+    "version": "lerna version --no-private",
+    "publish": "lerna publish --no-private"
   },
   "repository": {
     "type": "git",
