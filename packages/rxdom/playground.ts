@@ -4,7 +4,7 @@ import {
   combineReactors,
   reactorLogger,
 } from "@iatools/reactor-core";
-import { composeReactor } from "./src";
+import { composeReactor, ReactorContextProps } from "./src";
 
 interface CounterState {
   value: number;
@@ -36,7 +36,9 @@ const reactor = combineReactors({
   plugins: [reactorLogger()],
 });
 
-const [Provider, selector] = composeReactor(reactor, ({ props }) => {
+type ReactorProps = ReactorContextProps<typeof reactor>;
+
+const [Provider, selector] = composeReactor<ReactorProps>(({ props }) => {
   return div({ content: props.content });
 });
 
@@ -45,11 +47,7 @@ reactor.actions.counter.increment(3);
 export class AppComponent extends Component {
   render() {
     return div({
-      content: [
-        Provider({
-          content: [ReactiveComponent()],
-        }),
-      ],
+      content: [Provider({ reactor, content: [ReactiveComponent()] })],
     });
   }
 }

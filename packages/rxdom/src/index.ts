@@ -8,15 +8,15 @@ import {
 } from "@iatools/rxdom";
 import { Reactor, CombinedReactor } from "@iatools/reactor-core";
 
-type ComposedReactorState = ReactorContextProps;
-interface ComposedReactorProps {
+type ReactorProviderState = ReactorContextProps;
+interface ReactorProviderProps<R extends ReactorContextProps = Unknown> {
   reactor: ReactorType;
-  Provider: (props?: ReactorContextProps & NodeProps) => RxComponent;
+  Provider: (props?: NodeProps<R>) => RxComponent;
 }
 
-class ComposedReactorComponent extends Component<
-  ComposedReactorState,
-  ComposedReactorProps
+class ReactorProviderComponent extends Component<
+  ReactorProviderState,
+  ReactorProviderProps
 > {
   constructor(spec: ComponentSpec) {
     super(spec);
@@ -44,29 +44,26 @@ class ComposedReactorComponent extends Component<
   }
 }
 
-const ComposedReactor = Component.compose(ComposedReactorComponent);
+const ReactorProvider = Component.compose(ReactorProviderComponent);
 
-export const composeReactor = <R extends ReactorType = any>(
-  reactor: R,
+export const composeReactor = <R extends ReactorContextProps>(
   ...[render, consumer]: Parameters<typeof composeContext>
 ) => {
-  const [Provider, selector] = composeContext<ReactorContextProps<R>>(
-    render,
-    consumer
-  );
+  const [Provider, selector] = composeContext<R>(render, consumer);
 
-  const WrappedComponent = composeFunction(
-    ({ props: { key = "ComposedReactor", ...props } }) => {
-      return ComposedReactor({ key, reactor, Provider, ...props });
+  const WrappedProvider = composeFunction<{ reactor: ReactorType }>(
+    ({ props: { key = "ReactorProvider", ...props } }) => {
+      return ReactorProvider({ key, Provider, ...props });
     }
   );
 
-  return [WrappedComponent, selector] as const;
+  return [WrappedProvider, selector] as const;
 };
 
-export type ReactorContextProps<R extends ReactorType = any> = {
+export type ReactorContextProps<R extends ReactorType = Unknown> = {
   state: ReturnType<R["getState"]>;
   actions: R["actions"];
 };
 
-export type ReactorType = Reactor | CombinedReactor;
+type ReactorType = Reactor | CombinedReactor;
+type Unknown = any;
