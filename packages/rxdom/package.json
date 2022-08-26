@@ -24,8 +24,8 @@
   },
   "homepage": "https://github.com/IsaacAderogba/reactor#readme",
   "peerDependencies": {
-    "@iatools/rxdom": "^0.6.0",
-    "@iatools/reactor-core": "*"
+    "@iatools/reactor-core": "*",
+    "@iatools/rxdom": "^0.6.0"
   },
   "devDependencies": {
     "@iatools/rxdom": "^0.6.0",
