@@ -8,7 +8,8 @@
   ],
   "scripts": {
     "lint:staged": "lint-staged",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "version": "lerna version"
   },
   "repository": {
     "type": "git",
