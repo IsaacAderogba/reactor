@@ -72,9 +72,7 @@ const ReactiveComponent = composeFunction<{}, ReactiveComponentContext>(
     });
   },
   {
-    counter: selector<ReactiveComponentContext["counter"]>(props => ({
-      state: props.state.counter,
-    })),
+    counter: selector(props => ({ state: props.state.counter })),
   }
 );
 
@@ -96,9 +94,7 @@ const NonReactiveComponent = composeFunction<{}, NonReactiveComponentContext>(
     });
   },
   {
-    counter: selector<NonReactiveComponentContext["counter"]>(props => ({
-      actions: props.actions.counter,
-    })),
+    counter: selector(props => ({ actions: props.actions.counter })),
   }
 );
 
