@@ -9,28 +9,30 @@ import {
 import { Reactor, CombinedReactor } from "@iatools/reactor-core";
 
 type ReactorProviderState = ReactorContextProps;
-interface ReactorProviderProps<R extends ReactorContextProps = Unknown> {
+interface ReactorProviderProps {
   reactor: ReactorType;
-  Provider: (props?: NodeProps<R>) => RxComponent;
+  Provider: (props?: NodeProps<ReactorContextProps>) => RxComponent;
 }
 
 class ReactorProviderComponent extends Component<
   ReactorProviderState,
   ReactorProviderProps
 > {
+  unsubscribe: () => void;
+  
   constructor(spec: ComponentSpec) {
     super(spec);
 
     const { reactor } = this.props;
     this.state = { state: reactor.getState(), actions: reactor.actions };
+
+    this.unsubscribe = this.props.reactor.subscribe(state => {
+      this.setState(prev => ({ ...prev, state }));
+    });
   }
 
   onMount() {
-    const unsubscribe = this.props.reactor.subscribe(state => {
-      this.setState(prev => ({ ...prev, state }));
-    });
-
-    return unsubscribe;
+    return this.unsubscribe;
   }
 
   render() {
@@ -46,12 +48,15 @@ class ReactorProviderComponent extends Component<
 
 const ReactorProvider = Component.compose(ReactorProviderComponent);
 
-export const composeReactor = <R extends ReactorContextProps>(
+export const composeReactor = <R extends ReactorType>(
   ...[render, consumer]: Parameters<typeof composeContext>
 ) => {
-  const [Provider, selector] = composeContext<R>(render, consumer);
+  const [Provider, selector] = composeContext<ReactorContextProps<R>>(
+    render,
+    consumer
+  );
 
-  const WrappedProvider = composeFunction<{ reactor: ReactorType }>(
+  const WrappedProvider = composeFunction<{ reactor: R }>(
     ({ props: { key = "ReactorProvider", ...props } }) => {
       return ReactorProvider({ key, Provider, ...props });
     }

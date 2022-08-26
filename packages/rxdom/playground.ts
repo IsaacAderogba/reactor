@@ -1,4 +1,4 @@
-import { RxDOM, Component, div, composeFunction } from "@iatools/rxdom";
+import { RxDOM, Component, div, composeFunction, button } from "@iatools/rxdom";
 import {
   createReactor,
   combineReactors,
@@ -38,16 +38,19 @@ const reactor = combineReactors({
 
 type ReactorProps = ReactorContextProps<typeof reactor>;
 
-const [Provider, selector] = composeReactor<ReactorProps>(({ props }) => {
+const [Provider, selector] = composeReactor<typeof reactor>(({ props }) => {
   return div({ content: props.content });
 });
-
-reactor.actions.counter.increment(3);
 
 export class AppComponent extends Component {
   render() {
     return div({
-      content: [Provider({ reactor, content: [ReactiveComponent()] })],
+      content: [
+        Provider({
+          reactor,
+          content: [ReactiveComponent(), NonReactiveComponent()],
+        }),
+      ],
     });
   }
 }
@@ -55,13 +58,49 @@ export class AppComponent extends Component {
 const App = Component.compose(AppComponent);
 
 interface ReactiveComponentContext {
-  reactor: typeof reactor;
+  counter: {
+    state: ReactorProps["state"]["counter"];
+  };
 }
 
-const ReactiveComponent = composeFunction(() => {
-  console.log("render");
-  return div({ content: ["hello world"] });
-}, {});
+const ReactiveComponent = composeFunction<{}, ReactiveComponentContext>(
+  ({ context }) => {
+    console.log("ReactiveComponent");
+
+    return button({
+      content: [context.counter.state.value],
+    });
+  },
+  {
+    counter: selector<ReactiveComponentContext["counter"]>(props => ({
+      state: props.state.counter,
+    })),
+  }
+);
+
+interface NonReactiveComponentContext {
+  counter: {
+    actions: ReactorProps["actions"]["counter"];
+  };
+}
+
+const NonReactiveComponent = composeFunction<{}, NonReactiveComponentContext>(
+  ({ context }) => {
+    console.log("NonReactiveComponent");
+
+    return button({
+      content: ["increment counter"],
+      onclick: () => {
+        context.counter.actions.increment(1);
+      },
+    });
+  },
+  {
+    counter: selector<NonReactiveComponentContext["counter"]>(props => ({
+      actions: props.actions.counter,
+    })),
+  }
+);
 
 const rxdom = new RxDOM();
 rxdom.render(App({ key: "root" }), document.getElementById("playground")!);
